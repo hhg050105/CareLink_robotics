@@ -1,0 +1,14 @@
+[Unit]
+Description=CareLink motor, lidar, Nav2, Firebase navigation and YOLO fall detector
+Documentation=file:///home/carelink/robot_ws/start-carelink-autonomy.sh
+
+[Service]
+Type=simple
+ExecStart=/home/carelink/robot_ws/start-carelink-autonomy.sh
+Restart=on-failure
+RestartSec=5
+KillSignal=SIGINT
+TimeoutStopSec=30
+
+[Install]
+WantedBy=default.target

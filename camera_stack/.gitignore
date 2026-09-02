@@ -1,0 +1,10 @@
+secrets/
+*.json
+.venv-*/
+local/
+vendor/
+build*/
+artifacts/
+models/*.onnx
+__pycache__/
+*.pyc
