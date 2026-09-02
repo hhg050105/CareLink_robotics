@@ -11,35 +11,59 @@
 .svn/
 .swiftpm/
 migrate_working_dir/
+*~
+*.orig
 
-# IntelliJ related
+# IDE and local tooling
 *.iml
 *.ipr
 *.iws
 .idea/
+.vscode/
+.android-sdk-home/
+.android-user/
+.git_codex_tmp/
 
-# The .vscode folder contains launch configuration and tasks you configure in
-# VS Code which you may wish to be included in version control, so this line
-# is commented out by default.
-#.vscode/
-
-# Flutter/Dart/Pub related
+# Flutter/Dart/Pub
 **/doc/api/
 **/ios/Flutter/.last_build_id
 .dart_tool/
 .flutter-plugins-dependencies
 .pub-cache/
 .pub/
-/build/
-/coverage/
+build/
+coverage/
+.gradle-user/
+.gradle-local/
+**/android/local.properties
 
-# Symbolication related
+# Flutter build outputs
 app.*.symbols
-
-# Obfuscation related
 app.*.map.json
+**/android/app/debug/
+**/android/app/profile/
+**/android/app/release/
 
-# Android Studio will place build artifacts here
-/android/app/debug
-/android/app/profile
-/android/app/release
+# ROS 2/Python build outputs
+robot_ws/build/
+robot_ws/install/
+robot_ws/log/
+**/__pycache__/
+**/*.py[cod]
+**/.pytest_cache/
+**/.venv*/
+
+# Credentials, local configuration, and large generated assets
+**/secrets/
+**/*service-account*.json
+**/.env
+**/.env.*
+*.key
+*.pem
+dock_pose.json
+active-map
+**/models/
+**/*.onnx
+**/artifacts/
+camera_stack/local/
+camera_stack/vendor/

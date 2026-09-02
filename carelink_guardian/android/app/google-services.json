@@ -1,0 +1,49 @@
+{
+  "project_info": {
+    "project_number": "298650638052",
+    "firebase_url": "https://carelink-ed6ff-default-rtdb.firebaseio.com",
+    "project_id": "carelink-ed6ff",
+    "storage_bucket": "carelink-ed6ff.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:298650638052:android:4f31fc0f4cec54b6117ef1",
+        "android_client_info": {
+          "package_name": "com.carelink.carelink_guardian"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBOSDAV9eXjW7pqYpKJPyf6ENlpRaq61gE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:298650638052:android:793933002471ed36117ef1",
+        "android_client_info": {
+          "package_name": "com.example.carelink"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBOSDAV9eXjW7pqYpKJPyf6ENlpRaq61gE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
