@@ -136,3 +136,19 @@ ros2 run carelink_patrol firebase_nav_bridge
 Do not start `patrol_dock`, `firebase_patrol_bridge`, or `firebase_live_map`
 during this flow. They remain legacy/manual tools and are not launched by the
 new fixed navigation launch file.
+
+## Patrol tuning (2026-09-20)
+
+PATROL selects `behavior_trees/patrol.xml`, `PatrolFollowPath`, and
+`patrol_goal_checker` (PositionGoalChecker, 0.30 m). Waypoints, including the
+last return point, require position only. GoalAngleCritic is disabled only in
+the patrol controller. The route remains P1/P2/P3/P2/P1. Obstacle-aware planning
+and the standard recovery behaviors remain active; path turns and recovery
+spins can still occur. This does not implement charging-dock alignment.
+
+The patrol speed ceiling is 0.35 m/s (previously 0.30), acceleration 0.60 m/s².
+The smoother matches these limits; hardware limits remain 0.35 m/s. Speed may
+be lower around obstacles and turns. NAVIGATE uses `navigate.xml` and the
+original position/orientation checker and controller. The camera inference
+worker uses two CPU threads to leave capacity for navigation. Real patrol time
+and wheel motion must be evaluated in the operating environment.

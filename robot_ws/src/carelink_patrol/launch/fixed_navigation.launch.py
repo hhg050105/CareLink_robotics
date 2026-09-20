@@ -14,7 +14,7 @@ from launch_ros.actions import Node
 def generate_launch_description():
     articubot = get_package_share_directory('articubot_one')
     nav2 = get_package_share_directory('nav2_bringup')
-    default_map = os.path.join(articubot, 'maps', 'carelink_patrol_map.yaml')
+    default_map = os.path.join(articubot, 'maps', 'new_map02.yaml')
     default_params = os.path.join(articubot, 'config', 'nav2_params.yaml')
 
     return LaunchDescription([
@@ -35,6 +35,7 @@ def generate_launch_description():
         Node(
             package='carelink_patrol', executable='firebase_nav_bridge',
             name='firebase_nav_bridge', output='screen',
+            respawn=True, respawn_delay=5.0,
             condition=IfCondition(LaunchConfiguration('start_bridge')),
             parameters=[{'map_yaml_path': LaunchConfiguration('map')}]),
         Node(

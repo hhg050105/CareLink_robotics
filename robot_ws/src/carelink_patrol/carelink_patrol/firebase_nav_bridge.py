@@ -1,13 +1,11 @@
 #!/usr/bin/env python3
 """Bridge Firestore goals and three-point patrols to Nav2."""
 
-import base64
-import hashlib
-import io
 import math
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
+from ament_index_python.packages import get_package_share_directory
 from action_msgs.msg import GoalStatus
 from control_msgs.msg import DynamicJointState
 from geometry_msgs.msg import PoseStamped, PoseWithCovarianceStamped
@@ -135,9 +133,11 @@ class FirebaseNavBridge(Node):
             '/home/carelink/camera_stack/secrets/firebase-service-account.json')
         self.declare_parameter(
             'map_yaml_path',
-            '/home/carelink/robot_ws/src/articubot_one/maps/carelink_patrol_map.yaml')
+            '/home/carelink/robot_ws/src/articubot_one/maps/new_map02.yaml')
         self.declare_parameter('map_document_path', 'robot_maps/main')
         self.declare_parameter('command_document_path', 'robot_commands/navigation')
+        self.declare_parameter('patrol_behavior_tree', str(
+            Path(get_package_share_directory('carelink_patrol')) / 'behavior_trees' / 'patrol.xml'))
         self.declare_parameter('poll_interval_sec', 1.0)
         self.declare_parameter('action_server_timeout_sec', 2.0)
         self.declare_parameter(
@@ -187,39 +187,15 @@ class FirebaseNavBridge(Node):
         return firestore.client(), firestore
 
     def _load_and_upload_map(self) -> Dict[str, Any]:
-        import yaml
-        from PIL import Image
-        yaml_path = Path(str(self.get_parameter('map_yaml_path').value)).expanduser()
-        yaml_bytes = yaml_path.read_bytes()
-        metadata = yaml.safe_load(yaml_bytes)
-        image_path = yaml_path.parent / str(metadata['image'])
-        image_bytes = image_path.read_bytes()
-        with Image.open(io.BytesIO(image_bytes)) as image:
-            grayscale = image.convert('L')
-            width, height = grayscale.size
-            pixels = list(grayscale.getdata())
-            output = io.BytesIO()
-            grayscale.save(output, format='PNG', optimize=True)
-        version = hashlib.sha256(yaml_bytes + b'\0' + image_bytes).hexdigest()
-        origin = [float(item) for item in metadata['origin']]
-        payload = {
-            'imageBase64': base64.b64encode(output.getvalue()).decode('ascii'),
-            'imageMimeType': 'image/png', 'width': width, 'height': height,
-            'resolution': float(metadata['resolution']), 'origin': origin,
-            'frameId': 'map', 'source': 'fixed_map', 'mapVersion': version,
-            'pixelOrigin': 'top_left', 'pixelXDirection': 'right',
-            'pixelYDirection': 'down', 'updatedAt': self.firestore.SERVER_TIMESTAMP,
-        }
+        from carelink_patrol.fixed_map_upload import load_map, upload_verified
+        payload, info = load_map(str(self.get_parameter('map_yaml_path').value))
         map_path = str(self.get_parameter('map_document_path').value).strip('/')
-        self.db.document(map_path).set(payload, merge=True, timeout=10.0)
-        self.get_logger().info(f'Fixed map uploaded: {map_path}, version={version[:12]}')
-        return {
-            'width': width, 'height': height,
-            'resolution': float(metadata['resolution']), 'origin': origin,
-            'negate': int(metadata.get('negate', 0)),
-            'free_thresh': float(metadata.get('free_thresh', 0.196)),
-            'pixels': pixels, 'version': version,
-        }
+        upload_verified(self.db.document(map_path), payload,
+                        self.firestore.SERVER_TIMESTAMP,
+                        report=self.get_logger().warning)
+        self.get_logger().info(
+            f'Fixed map uploaded and verified: {map_path}, version={info["version"][:12]}')
+        return info
 
     def _update(self, values: Dict[str, Any]) -> None:
         self.command_document.set(values, merge=True, timeout=5.0)
@@ -416,6 +392,9 @@ class FirebaseNavBridge(Node):
         pose.pose.orientation.w = math.cos(yaw / 2.0)
         goal = NavigateToPose.Goal()
         goal.pose = pose
+        if self.active_is_patrol:
+            goal.behavior_tree = str(self.get_parameter(
+                'patrol_behavior_tree').value)
         self.action_client.send_goal_async(goal).add_done_callback(self._goal_response)
 
     def _send_undock(self) -> None:

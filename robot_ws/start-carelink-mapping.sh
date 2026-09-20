@@ -29,24 +29,21 @@ EOF
 
 stop_child() {
   local pid="${1:-}"
-  [[ -n "$pid" ]] || return
-  kill -0 "$pid" 2>/dev/null || return
-
-  kill -INT "$pid" 2>/dev/null || true
+  [[ -n "$pid" ]] || return 0
+  # Each launch owns a session, so also stop descendants if its parent exited.
+  kill -0 -- "-$pid" 2>/dev/null || return 0
+  kill -INT -- "-$pid" 2>/dev/null || true
   for _attempt in $(seq 1 30); do
-    kill -0 "$pid" 2>/dev/null || return
+    kill -0 -- "-$pid" 2>/dev/null || return 0
     sleep 0.1
   done
-
-  echo "[carelink-map] Process $pid did not stop after SIGINT; terminating it" >&2
-  kill -TERM "$pid" 2>/dev/null || true
+  kill -TERM -- "-$pid" 2>/dev/null || true
   for _attempt in $(seq 1 20); do
-    kill -0 "$pid" 2>/dev/null || return
+    kill -0 -- "-$pid" 2>/dev/null || return 0
     sleep 0.1
   done
-
-  echo "[carelink-map] Process $pid did not terminate; killing it" >&2
-  kill -KILL "$pid" 2>/dev/null || true
+  kill -KILL -- "-$pid" 2>/dev/null || true
+  return 0
 }
 
 stop_mapping_stack() {
@@ -137,7 +134,7 @@ source "$robot_ws/install/setup.bash"
 set -u
 
 echo "[carelink-map] Starting ROS 2 motor stack"
-ros2 launch articubot_one launch_robot.launch.py &
+setsid ros2 launch articubot_one launch_robot.launch.py &
 robot_pid=$!
 
 echo "[carelink-map] Waiting for diff_cont controller"
@@ -162,7 +159,7 @@ if (( ! controller_ready )); then
 fi
 
 echo "[carelink-map] Starting RPLIDAR A1"
-ros2 launch sllidar_ros2 sllidar_a1_launch.py \
+setsid ros2 launch sllidar_ros2 sllidar_a1_launch.py \
   serial_port:=/dev/serial/by-id/usb-Silicon_Labs_CP2102_USB_to_UART_Bridge_Controller_0001-if00-port0 \
   frame_id:=laser &
 lidar_pid=$!
@@ -186,7 +183,7 @@ if (( ! scan_ready )); then
 fi
 
 echo "[carelink-map] Starting slam_toolbox"
-ros2 launch carelink_patrol mapping.launch.py &
+setsid ros2 launch carelink_patrol mapping.launch.py &
 slam_pid=$!
 
 echo "[carelink-map] Waiting for the first map"
@@ -262,6 +259,16 @@ if [[ ! -s "$map_yaml" || ! -s "$map_image" ]]; then
   exit 1
 fi
 
+# Release mapping hardware before network retries; keep the previous active map
+# until the new image and metadata have been read back from Firestore.
+stop_mapping_stack
+echo "[carelink-map] Saved locally; uploading and verifying Firebase map"
+if ! ros2 run carelink_patrol upload_fixed_map "$map_yaml"; then
+  echo "[carelink-map] Upload failed. Local map retained: $map_yaml" >&2
+  echo "[carelink-map] Previous active map is unchanged; rerun upload_fixed_map to retry." >&2
+  exit 1
+fi
+
 mkdir -p "$(dirname "$active_map_file")"
 active_tmp="$(mktemp "$(dirname "$active_map_file")/.active-map.XXXXXX")"
 printf '%s\n' "$map_yaml" >"$active_tmp"
@@ -276,7 +283,7 @@ echo "[carelink-map] Saved and selected map: $map_yaml"
 if (( start_after_save )); then
   echo "[carelink-map] Starting autonomy with the new map"
   systemctl --user start "$autonomy_service"
-  echo "[carelink-map] The Firebase map will update when Nav2 finishes starting"
+  echo "[carelink-map] Firebase map upload is verified; autonomy is starting with the new map"
 else
   echo "[carelink-map] Autonomy was not started (--no-start)"
 fi

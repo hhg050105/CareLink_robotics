@@ -4,7 +4,7 @@ set -Eeuo pipefail
 readonly robot_ws="/home/carelink/robot_ws"
 readonly fall_detector_dir="/home/carelink/camera_stack"
 readonly maps_dir="$robot_ws/src/articubot_one/maps"
-readonly default_map="$maps_dir/carelink_patrol_map.yaml"
+readonly default_map="$maps_dir/new_map02.yaml"
 readonly active_map_file="/home/carelink/.config/carelink/active-map"
 
 navigation_map="$default_map"
@@ -132,9 +132,10 @@ echo "[carelink] Lidar ready; starting Nav2 with map $navigation_map"
 ros2 launch carelink_patrol fixed_navigation.launch.py map:="$navigation_map" &
 navigation_pid=$!
 
-echo "[carelink] Starting Firebase YOLO fall detector"
+echo "[carelink] Starting shared YOLO fall detection and Firebase person follower"
 cd "$fall_detector_dir"
-./run-firebase-fall-detector.sh --headless &
+"$robot_ws/camera_stack/run-vision-control.sh" --headless --enable-motion \
+  --cmd-topic /carelink/follower_cmd_vel &
 fall_detector_pid=$!
 
 # A failure in any managed process restarts the complete stack through systemd.

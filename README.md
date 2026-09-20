@@ -65,3 +65,8 @@ camera captures, or other private configuration.
 
 Keep an emergency stop available. Keyboard mapping has no Nav2 obstacle
 avoidance. Confirm localization and clear the robot's path before navigation.
+
+## Updated robot setup
+
+See [ROBOTICS.md](ROBOTICS.md) for shared camera following, verified map uploads,
+patrol tuning, and deployment dependencies. The included map is `new_map02`.

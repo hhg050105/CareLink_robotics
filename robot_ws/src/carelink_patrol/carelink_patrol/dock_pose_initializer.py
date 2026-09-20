@@ -61,7 +61,7 @@ class DockPoseInitializer(Node):
             'pose_file', '/home/carelink/.config/carelink/dock_pose.json')
         self.declare_parameter(
             'map_yaml_path', '/home/carelink/robot_ws/src/articubot_one/maps/'
-            'carelink_patrol_map.yaml')
+            'new_map02.yaml')
         self.pose_file = Path(str(self.get_parameter('pose_file').value)).expanduser()
         self.version = map_version(self.get_parameter('map_yaml_path').value)
         self.saved_pose = self._load_pose()

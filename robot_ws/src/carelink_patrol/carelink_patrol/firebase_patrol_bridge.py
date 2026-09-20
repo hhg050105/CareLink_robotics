@@ -63,7 +63,7 @@ class FirebasePatrolBridge(Node):
         self.declare_parameter(
             'map_yaml_path',
             '/home/carelink/robot_ws/src/articubot_one/maps/'
-            'carelink_patrol_map.yaml')
+            'new_map02.yaml')
         self.declare_parameter('map_document_path', 'robot_maps/main')
         self.declare_parameter('command_document_path', 'robot_commands/patrol')
         self.declare_parameter('poll_interval_sec', 1.0)

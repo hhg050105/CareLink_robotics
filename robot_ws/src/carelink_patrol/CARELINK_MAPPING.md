@@ -2,9 +2,10 @@
 
 This workflow creates a map without the mobile app. It stops the normal
 autonomy service, starts only the motor stack, lidar, and `slam_toolbox`, then
-uses `teleop_twist_keyboard` to drive the robot. A successful save selects the
-new map, restarts autonomy, and the existing Firebase navigation bridge uploads
-the map to `robot_maps/main` for the app.
+uses `teleop_twist_keyboard` to drive the robot. Saving writes the local map,
+stops the mapping stack, and uploads directly to `robot_maps/main`. It reads
+back the image and metadata before selecting the new map and starting autonomy.
+Network failures are retried up to five times with bounded request timeouts.
 
 ## Create and activate a map
 
@@ -61,12 +62,14 @@ The selected YAML path is stored in:
 /home/carelink/.config/carelink/active-map
 ```
 
-The autonomy service reads this file on every start. When Nav2 and the Firebase
-bridge finish starting, the app receives the new image and `mapVersion`. Goals,
+The autonomy service reads this file on every start. Firebase already contains
+the verified new image and `mapVersion` before the new map is selected. The
+bridge also uploads and verifies the selected map on startup; if it exits, its
+launch configuration restarts it after five seconds. Goals,
 patrol points, and the dock pose must be selected again because coordinates
 from the previous map do not belong to the new map.
 
-Use `--no-start` to save and select the map without restarting autonomy:
+Use `--no-start` to save, upload, verify, and select the map without restarting autonomy:
 
 ```bash
 ./start-carelink-mapping.sh ward_b --no-start
@@ -93,3 +96,26 @@ journalctl --user -u carelink-autonomy.service -f
 ```
 
 The bridge log should report `Fixed map uploaded` with the new map version.
+
+## Upload failure and retry
+
+If all upload attempts fail, the saved YAML/PGM files remain on disk and the
+previous active-map selection is retained. If autonomy was previously running,
+the script restores it with the previous map. Do not remap or overwrite the
+saved files to retry an upload.
+
+To upload an existing saved map without moving the robot:
+
+```bash
+source /opt/ros/jazzy/setup.bash
+source /home/carelink/robot_ws/install/setup.bash
+ros2 run carelink_patrol upload_fixed_map /home/carelink/robot_ws/src/articubot_one/maps/ward_b.yaml
+```
+
+This standalone command uploads only; it does not select the map or restart
+navigation. After a successful retry, select that same YAML in
+`/home/carelink/.config/carelink/active-map` and restart autonomy before sending
+navigation goals against it. The app must refresh `robot_maps/main`; upload
+verification does not confirm that the app has rendered the new map.
+
+Mapping-time live previews are not enabled by this change.

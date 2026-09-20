@@ -14,15 +14,16 @@ from yolo_fall_detector import Camera, detect
 
 
 class Detector(threading.Thread):
-    def __init__(self, camera, confidence):
+    def __init__(self, camera, confidence, on_fall=None):
         super().__init__(daemon=True)
         options = ort.SessionOptions()
-        options.intra_op_num_threads = 4
+        options.intra_op_num_threads = 2
         options.inter_op_num_threads = 1
         self.session = ort.InferenceSession(
             "models/yolo11n.onnx", sess_options=options,
             providers=["CPUExecutionProvider"]
         )
+        self.on_fall = on_fall
         self.camera = camera
         self.confidence = confidence
         self.lock = threading.Lock()
@@ -73,6 +74,8 @@ class Detector(threading.Thread):
                             path = self.output / f"fall-{time.strftime('%Y%m%d-%H%M%S')}.jpg"
                             cv2.imwrite(str(path), frame)
                             print(f"FALL_DETECTED {path}", flush=True)
+                            if self.on_fall is not None:
+                                self.on_fall(confidence, ratio, drop, path)
                 else:
                     self.lying_since = None
                     state = "PERSON"
@@ -82,10 +85,12 @@ class Detector(threading.Thread):
                     "people": people, "state": state,
                     "ms": (now - started) * 1000,
                     "alarm": now < self.alarm_until,
+                    "updated_at": started,
+                    "frame_size": (frame.shape[1], frame.shape[0]),
                 }
 
 
-def main():
+def main(detector_factory=Detector):
     parser = argparse.ArgumentParser()
     parser.add_argument("--confidence", type=float, default=0.35)
     parser.add_argument("--headless", action="store_true")
@@ -94,7 +99,7 @@ def main():
     args = parser.parse_args()
 
     camera = Camera()
-    detector = Detector(camera, args.confidence)
+    detector = detector_factory(camera, args.confidence)
     detector.start()
     started = time.monotonic()
     frames = 0

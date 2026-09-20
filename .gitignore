@@ -67,3 +67,7 @@ active-map
 **/artifacts/
 camera_stack/local/
 camera_stack/vendor/
+
+robot_ws/backups/
+robot_ws/map_backups/
+robot_ws/camera_stack/local/
